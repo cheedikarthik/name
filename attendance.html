@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Police Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a> |
+    <a href="register.html">Register</a> |
+    <a href="login.html">Login</a> |
+    <a href="complaint.html">Complaint</a> |
+    <a href="fir.html">FIR</a> |
+    <a href="case_tracking.html">Case Tracking</a> |
+    <a href="passport.html">Passport</a> |
+    <a href="attendance.html">Attendance</a> |
+    <a href="emergency_contacts.html">Emergency Contacts</a>
+  </nav>
+
+  <h1>Welcome to the AP/Telangana Police Portal</h1>
+
+  <div id="form-container"></div>
+  <div id="contactsList"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
+/* style.css */
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
+nav {
+  margin-bottom: 20px;
+}
+nav a {
+  margin-right: 10px;
+  text-decoration: none;
+  color: #333;
+}
+form {
+  margin-bottom: 20px;
+}
+input, textarea, select {
+  display: block;
+  margin: 5px 0 15px;
+  padding: 8px;
+  width: 300px;
+}
+button {
+  padding: 8px 16px;
+}
+
+// script.js
+const API_BASE = "http://localhost:8000/api";
+
+async function postData(url = '', data = {}) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+function handleFormSubmit(formId, endpoint) {
+  const form = document.getElementById(formId);
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      const result = await postData(`${API_BASE}/${endpoint}/`, data);
+      alert(result.message || "Error occurred");
+    });
+  }
+}
+
+['registerForm', 'loginForm', 'complaintForm', 'firForm', 'passportForm', 'attendanceForm'].forEach(id => handleFormSubmit(id, id.replace('Form', '')));
+
+const caseForm = document.getElementById("caseForm");
+if (caseForm) {
+  caseForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(caseForm);
+    const case_id = formData.get("case_id");
+    const response = await fetch(`${API_BASE}/cases/${case_id}/`);
+    const data = await response.json();
+    const caseDetailsDiv = document.getElementById("caseDetails");
+    caseDetailsDiv.innerHTML = data.error ? data.error : `<p>Case ID: ${data.id}</p>
+      <p>Status: ${data.case_status}</p>
+      <p>Location: ${data.location}</p>`;
+  });
+}
+
+function fetchEmergencyContacts() {
+  fetch(`${API_BASE}/emergency-contacts/`)
+    .then(response => response.json())
+    .then(data => {
+      const contactsDiv = document.getElementById("contactsList");
+      contactsDiv.innerHTML = Array.isArray(data)
+        ? data.map(contact => `<p><strong>${contact.contact_name}</strong> - ${contact.contact_number} (${contact.department})</p>`).join('')
+        : "No contacts found.";
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error fetching emergency contacts");
+    });
+}
+
+if (document.getElementById("contactsList")) {
+  fetchEmergencyContacts();
+}
